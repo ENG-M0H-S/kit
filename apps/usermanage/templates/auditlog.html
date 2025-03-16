@@ -1,0 +1,53 @@
+{% extends layout_path %}
+
+{% load i18n %}
+
+{% block title %}Page 1 - Starter Kit{% endblock title %}
+
+{% block content %}
+<h4 class="py-3 mb-4">سجل العمليات</h4>
+<!-- Hoverable Table rows -->
+<div class="card">
+    <h5 class="card-header"></h5>
+    <div class="table-responsive text-nowrap">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>التاريخ والوقت</th>
+                    <th>المستخدم</th>
+                    <th>النموذج</th>
+                    <th>الإجراء</th>
+                    <th>التفاصيل</th>
+                </tr>
+            </thead>
+            <tbody class="table-border-bottom-0">
+                {% for entry in log_entries %}
+                {% comment %} <td>{{ entry.actor.username|default:"غير معروف" }}</td> {% endcomment %}
+                <tr>
+                    <td rowspan="{{ entry.changes.items|length|add:2 }}">
+                        <i class="ri-suitcase-2-line ri-22px text-danger me-4"></i>
+                        <span class="fw-medium">{{ entry.timestamp }}</span>
+                    </td>
+                    <td rowspan="{{ entry.changes.items|length|add:2 }}">{{ entry.actor }}</td>
+                    <td rowspan="{{ entry.changes.items|length|add:2 }}">{{ entry.content_type.name }}</td>
+                    <td rowspan="{{ entry.changes.items|length|add:2 }}">{{ entry.get_action_display }}</td>
+                </tr>
+                <tr>
+                    <th>Field</th>
+                    <th>From</th>
+                    <th>To</th>
+                </tr>
+                {% for field, values in entry.changes.items %}
+                <tr>
+                    <td>{{ field }}</td>
+                    <td>{{ values.0 }}</td>
+                    <td>{{ values.1 }}</td>
+                </tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!--/ Hoverable Table rows -->
+{% endblock %}

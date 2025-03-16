@@ -1,0 +1,200 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}إدارة المواسم الزراعية{% endblock %}
+
+{% block content %}
+<button class="btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasAddSeason">
+جديد +
+</button>
+
+<!-- جدول المواسم -->
+<div class="card mt-3">
+  <h5 class="card-header">المواسم الزراعية</h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>الموسم الزراعي</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for season in seasons %}
+        <tr id="row-{{ season.id }}">
+          <td>{{ season.id }}</td>
+          <td>{{ season.season_name }}</td>
+          <td>
+            <div class="dropdown">
+              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                <i class="ri-more-2-line"></i>
+              </button>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="#" 
+                   data-season-id="{{ season.id }}" 
+                   data-season-name="{{ season.season_name }}" 
+                   data-bs-toggle="offcanvas" 
+                   data-bs-target="#offcanvasAddSeason">
+                  <i class="ri-pencil-line me-1"></i> تعديل
+                </a>
+                <a class="dropdown-item" href="#" onclick="deleteSeason({{ season.id }})">
+                  <i class="ri-delete-bin-7-line me-1"></i> حذف
+                </a>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-center">لا توجد بيانات</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- نافذة إضافة أو تعديل موسم -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAddSeason" aria-labelledby="offcanvasAddSeasonLabel">
+  <div class="offcanvas-header border-bottom">
+    <h5 id="offcanvasAddSeasonLabel" class="offcanvas-title">إضافة/تعديل موسم</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form id="seasonForm">
+      {% csrf_token %}
+      <input type="hidden" id="season-id" name="seasonId">
+      <div class="mb-3">
+        <label for="season-name" class="form-label">اسم الموسم</label>
+        <input type="text" class="form-control" id="season-name" name="season_name" required>
+      </div>
+      <button type="submit" class="btn btn-success" id="seasonActionButton">إضافة</button>
+      <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block vendor_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // عند الضغط على تعديل
+    document.querySelectorAll('[data-bs-toggle="offcanvas"]').forEach(button => {
+      button.addEventListener('click', function () {
+        let seasonId = this.getAttribute('data-season-id');
+        let seasonName = this.getAttribute('data-season-name');
+        
+        document.getElementById('season-id').value = seasonId;
+        document.getElementById('season-name').value = seasonName;
+  
+        // تغيير عنوان الـ Dialog وزر الـ Form بناءً على العملية
+        if (seasonId) {
+          // عملية تعديل
+          document.getElementById('offcanvasAddSeasonLabel').textContent = "تعديل موسم";
+          document.getElementById('seasonActionButton').textContent = "تعديل";
+        } else {
+          // عملية إضافة
+          document.getElementById('offcanvasAddSeasonLabel').textContent = "إضافة موسم";
+          document.getElementById('seasonActionButton').textContent = "إضافة";
+        }
+      });
+    });
+  
+    // عند إرسال النموذج
+    document.getElementById("seasonForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+  
+      let seasonId = document.getElementById("season-id").value;
+      let seasonName = document.getElementById("season-name").value.trim();
+      let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+  
+      if (!seasonName) {
+        alert("يرجى إدخال اسم الموسم");
+        return;
+      }
+  
+      let formData = new FormData();
+      formData.append("season_name", seasonName);
+      formData.append("seasonId", seasonId);
+  
+      // تحديد الـ URL بناءً على وجود seasonId
+      let url = seasonId ? "{% url 'edit_season' %}" : "{% url 'add_season' %}";
+  
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest" },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          let offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById("offcanvasAddSeason"));
+          offcanvas.hide();
+  
+          // تحديث الجدول بناءً على التعديل
+          if (seasonId) {
+            let row = document.getElementById(`row-${seasonId}`);
+            row.querySelector("td:nth-child(2)").textContent = seasonName;
+          } else {
+            // إضافة صف جديد إذا كانت إضافة
+            let tableBody = document.querySelector("tbody");
+            let newRow = `<tr id="row-${data.id}">
+              <td>${data.id}</td>
+              <td>${seasonName}</td>
+              <td>
+                <div class="dropdown">
+                  <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                    <i class="ri-more-2-line"></i>
+                  </button>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#" 
+                       data-season-id="${data.id}" 
+                       data-season-name="${seasonName}" 
+                       data-bs-toggle="offcanvas" 
+                       data-bs-target="#offcanvasAddSeason">
+                      <i class="ri-pencil-line me-1"></i> تعديل
+                    </a>
+                    <a class="dropdown-item" href="#" onclick="deleteSeason(${data.id})">
+                      <i class="ri-delete-bin-7-line me-1"></i> حذف
+                    </a>
+                  </div>
+                </div>
+              </td>
+            </tr>`;
+            tableBody.insertAdjacentHTML("beforeend", newRow);
+          }
+        } else {
+          alert("خطأ: " + (data.errors ? JSON.stringify(data.errors) : data.message));
+        }
+      })
+      .catch(error => console.error("Error:", error));
+    });
+  });
+
+  function deleteSeason(seasonId) {
+    if (!confirm("هل أنت متأكد أنك تريد حذف هذا الموسم؟")) {
+      return;
+    }
+
+    let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+
+    fetch(`/seasons/delete/${seasonId}/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest" },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`row-${seasonId}`).remove();
+            alert("تم حذف الموسم بنجاح!");
+        } else {
+            alert("خطأ أثناء الحذف: " + (data.error || "حدث خطأ غير معروف"));
+        }
+    })
+    .catch(error => console.error("Error:", error));
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}إدارة المناطق{% endblock %}
+
+{% block content %}
+<button class="btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasAddArea">
+    جديد +
+</button>
+
+<!-- جدول المناطق -->
+<div class="card mt-3">
+  <h5 class="card-header">المناطق</h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>المحافظة</th>
+          <th>المنطقة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for area in areas %}
+        <tr id="row-{{ area.id }}">
+          <td>{{ area.id }}</td>
+          <td>{{ area.governates.gv_name }}</td>
+          <td>{{ area.area_name }}</td>
+          <td>
+            <div class="dropdown">
+              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                <i class="ri-more-2-line"></i>
+              </button>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="#" 
+                   data-area-id="{{ area.id }}" 
+                   data-area-name="{{ area.area_name }}"
+                   data-governate-id="{{ area.governates.id }}"
+                   data-bs-toggle="offcanvas" 
+                   data-bs-target="#offcanvasAddArea">
+                  <i class="ri-pencil-line me-1"></i> تعديل
+                </a>
+                <a class="dropdown-item" href="#" onclick="deleteArea({{ area.id }})">
+                  <i class="ri-delete-bin-7-line me-1"></i> حذف
+                </a>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center">لا توجد بيانات</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- نافذة إضافة أو تعديل منطقة -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAddArea" aria-labelledby="offcanvasAddAreaLabel">
+  <div class="offcanvas-header border-bottom">
+    <h5 id="offcanvasAddAreaLabel" class="offcanvas-title">إضافة/تعديل منطقة</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form id="areaForm">
+      {% csrf_token %}
+      <input type="hidden" id="area-id" name="areaId">
+      <div class="mb-3">
+        <label for="governate" class="form-label">المحافظة</label>
+        <select class="form-select" id="governate" name="governate" required>
+          {% for governate in governates %}
+          <option value="{{ governate.id }}">{{ governate.gv_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="area-name" class="form-label">اسم المنطقة</label>
+        <input type="text" class="form-control" id="area-name" name="areaName" required>
+      </div>
+      <button type="submit" class="btn btn-success" id="areaActionButton">إضافة</button>
+      <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">إلغاء</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block vendor_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('[data-bs-toggle="offcanvas"]').forEach(button => {
+      button.addEventListener('click', function () {
+        let areaId = this.getAttribute('data-area-id');
+        let areaName = this.getAttribute('data-area-name');
+        let governateId = this.getAttribute('data-governate-id');
+        
+        document.getElementById('area-id').value = areaId;
+        document.getElementById('area-name').value = areaName;
+        document.getElementById('governate').value = governateId;
+
+        if (areaId) {
+          document.getElementById('offcanvasAddAreaLabel').textContent = "تعديل منطقة";
+          document.getElementById('areaActionButton').textContent = "تعديل";
+        } else {
+          document.getElementById('offcanvasAddAreaLabel').textContent = "إضافة منطقة";
+          document.getElementById('areaActionButton').textContent = "إضافة";
+        }
+      });
+    });
+
+    document.getElementById("areaForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      
+      let areaId = document.getElementById("area-id").value;
+      let areaName = document.getElementById("area-name").value.trim();
+      let governateId = document.getElementById("governate").value;
+      let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+      
+      let formData = new FormData();
+      formData.append("area_name", areaName);
+      formData.append("governates", governateId);
+      formData.append("areaId", areaId);
+      
+      let url = areaId ? "{% url 'edit_area' %}" : "{% url 'add_area' %}";
+      
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest" },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          let offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById("offcanvasAddArea"));
+          offcanvas.hide();
+          location.reload();
+        } else {
+          alert("خطأ: " + (data.errors ? JSON.stringify(data.errors) : data.message));
+        }
+      })
+      .catch(error => console.error("Error:", error));
+    });
+  });
+
+  function deleteArea(areaId) {
+    if (!confirm("هل أنت متأكد أنك تريد حذف هذه المنطقة؟")) return;
+    let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+    fetch(`/areas/delete/${areaId}/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest" }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById(`row-${areaId}`).remove();
+        alert("تم حذف المنطقة بنجاح!");
+      } else {
+        alert("خطأ أثناء الحذف: " + (data.error || "حدث خطأ غير معروف"));
+      }
+    })
+    .catch(error => console.error("Error:", error));
+  }
+</script>
+{% endblock vendor_js %}

@@ -1,0 +1,110 @@
+{
+  "menu": [
+        {
+      "name": "govarnates",
+      "icon": "menu-icon tf-icons ri-bank-fill ",
+      "slug": "govarnates",
+      "submenu": [
+        {
+          "url": "govarnates",
+          "name": "المحافظات",
+          "slug": "govarnates"
+        },   
+        {
+          "url": "areas",
+          "name": "المناطق",
+          "slug": "areas"
+        }   
+               
+      ]
+    },
+   
+    {
+      "name": "Seasons",
+      "icon": "menu-icon tf-icons ri-tree-fill",
+      "slug": "Seasons",
+      "submenu": [
+        {
+          "url": "seasons",
+          "name": "مواسم الزراعة",
+          "slug": "seasons"
+        },   
+        {
+          "url": "areaseasons",
+          "name": "مواسم المنطقة",
+          "slug": "areaseasons"
+        }   
+               
+      ]
+    },
+
+    {
+      "name": "plantations",
+      "icon": "menu-icon tf-icons ri-leaf-fill ",
+      "slug": "plantations",
+      "submenu": [
+        {
+          "name": "الاصناف",
+          "slug": "categories",
+          "icon": "menu-icon tf-icons ri-list-check-2",
+          "submenu": [
+            {
+              "url": "vegetables",
+              "name": "الخضروات",
+              "slug": "vegetables"
+            },
+            {
+              "url": "fruits",
+              "name": "الفواكه",
+              "slug": "fruits"
+            },
+            {
+              "url": "grains",
+              "name": "الحبوب",
+              "slug": "grains"
+            },
+            {
+              "url": "herbs",
+              "name": "الأعشاب",
+              "slug": "herbs"
+            }
+          ]
+        },
+        {
+          "url": "plants",
+          "name": "النباتات",
+          "slug": "plants"
+        }
+      ]
+    },
+        {
+      "name": "User Managemnt",
+      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "slug": "dashboard",
+      "submenu": [
+        {
+          "url": "auditlog",
+          "name": "سجل العلمليات",
+          "slug": "auditlog"
+        },
+        {
+          "url": "sessions",
+          "name": "الجلسات",
+          "slug": "sessions"
+        }
+      ]
+    },
+    {
+      "url": "index",
+      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "name": "Page 1",
+      "slug": "index"
+    },
+    {
+      "url": "page-2",
+      "icon": "menu-icon tf-icons ri-file-3-line",
+      "name": "Page 2",
+      "slug": "page-2"
+    }
+  ]
+}

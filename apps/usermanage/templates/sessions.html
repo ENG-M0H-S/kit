@@ -1,0 +1,45 @@
+{% extends layout_path %}
+
+{% load i18n %}
+
+{% block title %}Page 1 - Starter Kit{% endblock title %}
+
+{% block content %}
+
+<h4 class="py-3 mb-4"> الجلسات</h4>
+<!-- Hoverable Table rows -->
+<div class="card">
+  <h5 class="card-header"></h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+            <th>عنوان IP</th>
+            <th>المستخدم</th>
+            <th>هل الجلسة صالحة؟</th>
+            <th>الموقع</th>
+            <th>الجهاز</th>
+            <th>المتصفح</th>
+            <th>آخر نشاط</th>
+            <th>تاريخ الانتهاء</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+      {% for session in sessions %}
+        <tr>
+                    <td>{{ session.ip }}</td>
+                    <td>{{ session.user.username }}</td>
+                    <td>{{ session.is_valid|yesno:"Yes,No" }}</td>
+                    <td>{{ session.location|default:"-" }}</td>
+                    <td>{{ session.browser   }}</td>
+                    <td>{{ session.os  }}</td>
+                    <td>{{ session.last_activity|date:"Y-m-d H:i:s" }}</td>
+                    <td>{{ session.expire_date|date:"Y-m-d H:i:s" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<!--/ Hoverable Table rows -->
+{% endblock %}

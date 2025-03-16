@@ -1,0 +1,201 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}إدارة المحافظات{% endblock %}
+
+{% block content %}
+<button class="btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasAddGovernate">
+جديد +
+</button>
+
+<!-- جدول المحافظات -->
+<div class="card mt-3">
+  <h5 class="card-header">المحافظات</h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>المحافظة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for governate in governates %}
+        <tr id="row-{{ governate.id }}">
+          <td>{{ governate.id }}</td>
+          <td>{{ governate.gv_name }}</td>
+          <td>
+            <div class="dropdown">
+              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line"></i></button>
+
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="#" 
+                   data-governate-id="{{ governate.id }}" 
+                   data-governate-name="{{ governate.gv_name }}" 
+                   data-bs-toggle="offcanvas" 
+                   data-bs-target="#offcanvasAddGovernate">
+                  <i class="ri-pencil-line me-1"></i> تعديل
+                </a>
+                <a class="dropdown-item" href="#" onclick="deleteGovernate({{ governate.id }})">
+                  <i class="ri-delete-bin-7-line me-1"></i> حذف
+                </a>
+              </div>
+            </div>
+            
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-center">لا توجد بيانات</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- نافذة إضافة أو تعديل محافظة -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAddGovernate" aria-labelledby="offcanvasAddGovernateLabel">
+  <div class="offcanvas-header border-bottom">
+    <h5 id="offcanvasAddGovernateLabel" class="offcanvas-title">إضافة/تعديل محافظة</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form id="governateForm">
+      {% csrf_token %}
+      <input type="hidden" id="governate-id" name="governateId">
+      <div class="mb-3">
+        <label for="governate-name" class="form-label">اسم المحافظة</label>
+        <input type="text" class="form-control" id="governate-name" name="governateName" required>
+      </div>
+      <button type="submit" class="btn btn-success" id="governateActionButton">إضافة</button>
+      <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block vendor_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // عند الضغط على تعديل
+    document.querySelectorAll('[data-bs-toggle="offcanvas"]').forEach(button => {
+      button.addEventListener('click', function () {
+        let governateId = this.getAttribute('data-governate-id');
+        let governateName = this.getAttribute('data-governate-name');
+        
+        document.getElementById('governate-id').value = governateId;
+        document.getElementById('governate-name').value = governateName;
+  
+        // تغيير عنوان الـ Dialog وزر الـ Form بناءً على العملية
+        if (governateId) {
+          // عملية تعديل
+          document.getElementById('offcanvasAddGovernateLabel').textContent = "تعديل محافظة";
+          document.getElementById('governateActionButton').textContent = "تعديل";
+        } else {
+          // عملية إضافة
+          document.getElementById('offcanvasAddGovernateLabel').textContent = "إضافة محافظة";
+          document.getElementById('governateActionButton').textContent = "إضافة";
+        }
+      });
+    });
+  
+    // عند إرسال النموذج
+    document.getElementById("governateForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+  
+      let governateId = document.getElementById("governate-id").value;
+      let governateName = document.getElementById("governate-name").value.trim();
+      let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+  
+      if (!governateName) {
+        alert("يرجى إدخال اسم المحافظة");
+        return;
+      }
+  
+      let formData = new FormData();
+      formData.append("gv_name", governateName);
+      formData.append("governateId", governateId);
+  
+      // تحديد الـ URL بناءً على وجود governateId
+      let url = governateId ? "{% url 'edit_governate' %}" : "{% url 'add_governate' %}";
+  
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest" },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          let offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById("offcanvasAddGovernate"));
+          offcanvas.hide();
+  
+          // تحديث الجدول بناءً على التعديل
+          if (governateId) {
+            let row = document.getElementById(`row-${governateId}`);
+            row.querySelector("td:nth-child(2)").textContent = governateName;
+          } else {
+            // إضافة صف جديد إذا كانت إضافة
+            let tableBody = document.querySelector("tbody");
+            let newRow = `<tr id="row-${data.id}">
+              <td>${data.id}</td>
+              <td>${governateName}</td>
+              <td>
+                <div class="dropdown">
+                  <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                    <i class="ri-more-2-line"></i>
+                  </button>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#" 
+                       data-governate-id="${data.id}" 
+                       data-governate-name="${governateName}" 
+                       data-bs-toggle="offcanvas" 
+                       data-bs-target="#offcanvasAddGovernate">
+                      <i class="ri-pencil-line me-1"></i> تعديل
+                    </a>
+                    <a class="dropdown-item" href="#" onclick="deleteGovernate(${data.id})">
+                      <i class="ri-delete-bin-7-line me-1"></i> حذف
+                    </a>
+                  </div>
+                </div>
+              </td>
+            </tr>`;
+            tableBody.insertAdjacentHTML("beforeend", newRow);
+          }
+        } else {
+          alert("خطأ: " + (data.errors ? JSON.stringify(data.errors) : data.message));
+        }
+      })
+      .catch(error => console.error("Error:", error));
+    });
+  });
+  
+
+  function deleteGovernate(governateId) {
+    if (!confirm("هل أنت متأكد أنك تريد حذف هذه المحافظة؟")) {
+      return; // إلغاء العملية إذا لم يؤكد المستخدم
+  }
+
+  let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+
+  fetch(`/governates/delete/${governateId}/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest" },
+  })
+  .then(response => response.json())
+  .then(data => {
+      if (data.success) {
+          document.getElementById(`row-${governateId}`).remove();
+          alert("تم حذف المحافظة بنجاح!");
+      } else {
+          alert("خطأ أثناء الحذف: " + (data.error || "حدث خطأ غير معروف"));
+      }
+  })
+  .catch(error => console.error("Error:", error));
+  }
+</script>
+{% endblock %}

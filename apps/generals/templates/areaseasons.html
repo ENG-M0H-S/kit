@@ -1,0 +1,289 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}إدارة مواسم المناطق{% endblock %}
+
+{% block content %}
+<button class="btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasAddAreaSeason">
+جديد +
+</button>
+<!-- جدول مواسم المناطق -->
+<div class="card mt-3">
+  <h5 class="card-header">مواسم المناطق</h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>المنطقة</th>
+          <th>الموسم</th>
+          <th>التاريخ بداية</th>
+          <th>التاريخ نهاية</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for area_season in area_seasons %}
+        <tr id="row-{{ area_season.id }}">
+          <td>{{ area_season.id }}</td>
+          <td>{{ area_season.area.area_name }}</td>
+          <td>{{ area_season.season.season_name }}</td>
+          <td>{{ area_season.start_date }}</td>
+          <td>{{ area_season.end_date }}</td>
+          <td>
+            <div class="dropdown">
+              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line"></i></button>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="#" 
+                   data-area-season-id="{{ area_season.id }}" 
+                   data-area-id="{{ area_season.area.id }}" 
+                   data-season-id="{{ area_season.season.id }}" 
+                   data-start-date="{{ area_season.start_date }}" 
+                   data-end-date="{{ area_season.end_date }}" 
+                   data-bs-toggle="offcanvas" 
+                   data-bs-target="#offcanvasAddAreaSeason">
+                  <i class="ri-pencil-line me-1"></i> تعديل
+                </a>
+                <a class="dropdown-item" href="#" onclick="deleteAreaSeason({{ area_season.id }})">
+                  <i class="ri-delete-bin-7-line me-1"></i> حذف
+                </a>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center">لا توجد بيانات</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- نافذة إضافة أو تعديل موسم منطقة -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAddAreaSeason" aria-labelledby="offcanvasAddAreaSeasonLabel">
+  <div class="offcanvas-header border-bottom">
+    <h5 id="offcanvasAddAreaSeasonLabel" class="offcanvas-title">إضافة/تعديل موسم منطقة</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form id="AreaSeasonForm">
+      {% csrf_token %}
+      <input type="hidden" id="area-season-id" name="areaSeasonId">
+      
+      <div class="mb-3">
+        <label for="area-id" class="form-label">المنطقة</label>
+        <select class="form-select" id="area-id" name="area_id" required>
+          {% for area in areas %}
+            <option value="{{ area.id }}">{{ area.area_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="season-id" class="form-label">الموسم</label>
+        <select class="form-select" id="season-id" name="season_id" required>
+          {% for season in seasons %}
+            <option value="{{ season.id }}">{{ season.season_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- حقل اختيار تاريخ البداية -->
+      <div class="mb-3">
+        <label class="form-label">تاريخ البداية</label>
+        <div class="row">
+            <div class="col">
+                <select class="form-select" id="start-month" name="start_month" required>
+                    <option value="">اختر الشهر</option>
+                    <option value="1">يناير</option>
+                    <option value="2">فبراير</option>
+                    <option value="3">مارس</option>
+                    <option value="4">أبريل</option>
+                    <option value="5">مايو</option>
+                    <option value="6">يونيو</option>
+                    <option value="7">يوليو</option>
+                    <option value="8">أغسطس</option>
+                    <option value="9">سبتمبر</option>
+                    <option value="10">أكتوبر</option>
+                    <option value="11">نوفمبر</option>
+                    <option value="12">ديسمبر</option>
+                </select>
+            </div>
+            <div class="col">
+                <select class="form-select" id="start-day" name="start_day" required>
+                    <option value="">اختر اليوم</option>
+                    {% for day in "12345678910111213141516171819202122232425262728293031" %}
+                        <option value="{{ day }}">{{ day }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+      </div>
+
+      <!-- حقل اختيار تاريخ النهاية -->
+      <div class="mb-3">
+        <label class="form-label">تاريخ النهاية</label>
+        <div class="row">
+            <div class="col">
+                <select class="form-select" id="end-month" name="end_month" required>
+                    <option value="">اختر الشهر</option>
+                    <option value="1">يناير</option>
+                    <option value="2">فبراير</option>
+                    <option value="3">مارس</option>
+                    <option value="4">أبريل</option>
+                    <option value="5">مايو</option>
+                    <option value="6">يونيو</option>
+                    <option value="7">يوليو</option>
+                    <option value="8">أغسطس</option>
+                    <option value="9">سبتمبر</option>
+                    <option value="10">أكتوبر</option>
+                    <option value="11">نوفمبر</option>
+                    <option value="12">ديسمبر</option>
+                </select>
+            </div>
+            <div class="col">
+                <select class="form-select" id="end-day" name="end_day" required>
+                    <option value="">اختر اليوم</option>
+                    {% for day in "12345678910111213141516171819202122232425262728293031" %}
+                        <option value="{{ day }}">{{ day }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success" id="areaSeasonActionButton">إضافة</button>
+      <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block vendor_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // عند الضغط على تعديل
+    document.querySelectorAll('[data-bs-toggle="offcanvas"]').forEach(button => {
+        button.addEventListener('click', function () {
+            let areaSeasonId = this.getAttribute('data-area-season-id');
+            let areaId = this.getAttribute('data-area-id');
+            let seasonId = this.getAttribute('data-season-id');
+            let startDate = this.getAttribute('data-start-date');
+            let endDate = this.getAttribute('data-end-date');
+
+            document.getElementById('area-season-id').value = areaSeasonId;
+            document.getElementById('area-id').value = areaId;
+            document.getElementById('season-id').value = seasonId;
+
+            // تقسيم التاريخ إلى شهر ويوم
+            if (startDate) {
+                let [startMonth, startDay] = startDate.split('-');
+                document.getElementById('start-month').value = startMonth;
+                document.getElementById('start-day').value = startDay;
+            }
+            if (endDate) {
+                let [endMonth, endDay] = endDate.split('-');
+                document.getElementById('end-month').value = endMonth;
+                document.getElementById('end-day').value = endDay;
+            }
+
+            // تغيير عنوان الـ Dialog وزر الـ Form بناءً على العملية
+            if (areaSeasonId) {
+                document.getElementById('offcanvasAddAreaSeasonLabel').textContent = "تعديل موسم منطقة";
+                document.getElementById('areaSeasonActionButton').textContent = "تعديل";
+            } else {
+                document.getElementById('offcanvasAddAreaSeasonLabel').textContent = "إضافة موسم منطقة";
+                document.getElementById('areaSeasonActionButton').textContent = "إضافة";
+            }
+        });
+    });
+
+    // عند إرسال النموذج
+    document.getElementById("AreaSeasonForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        let areaSeasonId = document.getElementById("area-season-id").value;
+        let areaId = document.getElementById("area-id").value;
+        let seasonId = document.getElementById("season-id").value;
+        let startMonth = document.getElementById("start-month").value;
+        let startDay = document.getElementById("start-day").value;
+        let endMonth = document.getElementById("end-month").value;
+        let endDay = document.getElementById("end-day").value;
+        let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+
+        // دمج الشهر واليوم في تاريخ واحد
+        let startDate = `${startMonth}-${startDay}`;
+        let endDate = `${endMonth}-${endDay}`;
+
+        let url = areaSeasonId ? "{% url 'edit_area_season' %}" : "{% url 'add_area_season' %}";
+
+        let formData = new FormData();
+        formData.append("csrfmiddlewaretoken", csrfToken);
+        formData.append("area_id", areaId);
+        formData.append("season_id", seasonId);
+        formData.append("start_date", startDate);
+        formData.append("end_date", endDate);
+        if (areaSeasonId) {
+            formData.append("areaSeasonId", areaSeasonId);
+        }
+
+        fetch(url, {
+            method: "POST",
+            body: formData
+        })
+
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById("offcanvasAddAreaSeason"));
+                offcanvas.hide();
+
+                if (areaSeasonId) {
+                    let row = document.getElementById(`row-${areaSeasonId}`);
+                    row.querySelector('td:nth-child(2)').textContent = document.getElementById('area-id').options[document.getElementById('area-id').selectedIndex].text;
+                    row.querySelector('td:nth-child(3)').textContent = document.getElementById('season-id').options[document.getElementById('season-id').selectedIndex].text;
+                    row.querySelector('td:nth-child(4)').textContent = startDate;
+                    row.querySelector('td:nth-child(5)').textContent = endDate;
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert("حدث خطأ: " + JSON.stringify(data.errors));
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    });
+});
+
+// حذف موسم منطقة
+function deleteAreaSeason(areaSeasonId) {
+    if (confirm("هل أنت متأكد من أنك تريد حذف هذا الموسم؟")) {
+        let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+
+        fetch(`/areaseasons/delete/${areaSeasonId}/`, {
+            method: "POST",
+            headers: { 
+                "X-CSRFToken": csrfToken, 
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({ area_season_id: areaSeasonId }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`row-${areaSeasonId}`).remove();
+                alert(data.message);
+            } else {
+                alert("حدث خطأ: " + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
