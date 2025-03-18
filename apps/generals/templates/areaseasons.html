@@ -24,7 +24,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for area_season in area_seasons %}
+        {% for area_season in areaseasons %}
         <tr id="row-{{ area_season.id }}">
           <td>{{ area_season.id }}</td>
           <td>{{ area_season.area.area_name }}</td>
@@ -113,12 +113,16 @@
                 </select>
             </div>
             <div class="col">
+              {% with "123456789101112131415161718192021222324252627282930" as days %}
                 <select class="form-select" id="start-day" name="start_day" required>
                     <option value="">اختر اليوم</option>
-                    {% for day in "12345678910111213141516171819202122232425262728293031" %}
-                        <option value="{{ day }}">{{ day }}</option>
+                    {% for day in days %}
+                      {% if forloop.counter <= 31 %}
+                        <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                      {% endif %}
                     {% endfor %}
                 </select>
+              {% endwith %}
             </div>
         </div>
       </div>
@@ -145,12 +149,16 @@
                 </select>
             </div>
             <div class="col">
+              {% with "123456789101112131415161718192021222324252627282930" as days %}
                 <select class="form-select" id="end-day" name="end_day" required>
                     <option value="">اختر اليوم</option>
-                    {% for day in "12345678910111213141516171819202122232425262728293031" %}
-                        <option value="{{ day }}">{{ day }}</option>
+                    {% for day in days %}
+                      {% if forloop.counter <= 31 %}
+                        <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                      {% endif %}
                     {% endfor %}
                 </select>
+              {% endwith %}
             </div>
         </div>
       </div>
@@ -221,21 +229,22 @@
 
         let url = areaSeasonId ? "{% url 'edit_area_season' %}" : "{% url 'add_area_season' %}";
 
-        let formData = new FormData();
-        formData.append("csrfmiddlewaretoken", csrfToken);
-        formData.append("area_id", areaId);
-        formData.append("season_id", seasonId);
-        formData.append("start_date", startDate);
-        formData.append("end_date", endDate);
-        if (areaSeasonId) {
-            formData.append("areaSeasonId", areaSeasonId);
-        }
-
         fetch(url, {
             method: "POST",
-            body: formData
+            headers: { 
+                "X-CSRFToken": csrfToken, 
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+                area_id: areaId,
+                season_id: seasonId,
+                start_month: startMonth,
+                start_day: startDay,
+                end_month: endMonth,
+                end_day: endDay,
+                areaSeasonId: areaSeasonId
+            })
         })
-
         .then(response => response.json())
         .then(data => {
             if (data.success) {

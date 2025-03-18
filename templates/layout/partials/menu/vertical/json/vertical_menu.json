@@ -77,9 +77,9 @@
         }
       ]
     },
-        {
+    {
       "name": "User Managemnt",
-      "icon": "menu-icon tf-icons ri-home-smile-line",
+      "icon": "menu-icon tf-icons ri-group-fill",
       "slug": "dashboard",
       "submenu": [
         {
@@ -93,6 +93,12 @@
           "slug": "sessions"
         }
       ]
+    },
+    {
+      "url": "notifications",
+      "icon": "menu-icon tf-icons ri-notification-3-fill",
+      "name": "Notifications",
+      "slug": "notifications"
     },
     {
       "url": "index",

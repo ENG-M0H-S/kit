@@ -1,0 +1,245 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}إدارة الإشعارات{% endblock %}
+
+{% block content %}
+<button class="btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcanvasAddNotification">
+    جديد +
+</button>
+<!-- جدول الإشعارات -->
+<div class="card mt-3">
+  <h5 class="card-header">الإشعارات</h5>
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>النوع</th>
+          <th>العنوان</th>
+          <th>الرسالة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for notification in notifications %}
+        <tr id="row-{{ notification.id }}">
+          <td>{{ notification.id }}</td>
+          <td>{{ notification.get_notification_type_display }}</td>
+          <td>{{ notification.title }}</td>
+          <td>{{ notification.message }}</td>
+          <td>
+            <div class="dropdown">
+              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown"><i class="ri-more-2-line"></i></button>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="#" 
+                   data-notification-id="{{ notification.id }}" 
+                   data-notification-type="{{ notification.notification_type }}" 
+                   data-title="{{ notification.title }}" 
+                   data-message="{{ notification.message }}" 
+                   data-bs-toggle="offcanvas" 
+                   data-bs-target="#offcanvasAddNotification">
+                  <i class="ri-pencil-line me-1"></i> تعديل
+                </a>
+                <a class="dropdown-item" href="#" onclick="deleteNotification({{ notification.id }})">
+                  <i class="ri-delete-bin-7-line me-1"></i> حذف
+                </a>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center">لا توجد إشعارات</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- نافذة إضافة أو تعديل إشعار -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAddNotification" aria-labelledby="offcanvasAddNotificationLabel">
+  <div class="offcanvas-header border-bottom">
+    <h5 id="offcanvasAddNotificationLabel" class="offcanvas-title">إضافة/تعديل إشعار</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form id="NotificationForm">
+      {% csrf_token %}
+      <input type="hidden" id="notification-id" name="notificationId">
+      
+      <div class="mb-3">
+        <label for="notification-type" class="form-label">نوع الإشعار</label>
+        <select class="form-select" id="notification-type" name="notification_type" required>
+          <option value="transaction">معاملة</option>
+          <option value="season">موسم</option>
+          <option value="crop">محصول</option>
+          <option value="general">عامه</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="title" class="form-label">العنوان</label>
+        <select class="form-select" id="title" name="title" required>
+            <option value="">اختر العنوان</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="message" class="form-label">الرسالة</label>
+        <textarea class="form-control" id="message" name="message" rows="3" required></textarea>
+      </div>
+
+
+      <button type="submit" class="btn btn-success" id="notificationActionButton">إضافة</button>
+      <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block vendor_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const notificationType = document.getElementById("notification-type");
+        const titleDropdown = document.getElementById("title");
+    
+        // عناصر القائمة المنسدلة بناءً على نوع الإشعار
+        const titleOptions = {
+            transaction: ["ايداع", "سحب", "خصم"],
+            season: ["بداية", "نهاية"],
+            crop: ["ري", "تسميد", "حصاد"],
+            general: ["عامه"]
+        };
+    
+        // تحديث القائمة المنسدلة عند تغيير نوع الإشعار
+        notificationType.addEventListener("change", function () {
+            const selectedType = this.value;
+            titleDropdown.innerHTML = '<option value="">اختر العنوان</option>';
+    
+            if (selectedType && titleOptions[selectedType]) {
+                titleOptions[selectedType].forEach(option => {
+                    const newOption = document.createElement("option");
+                    newOption.value = option;
+                    newOption.textContent = option;
+                    titleDropdown.appendChild(newOption);
+                });
+            }
+        });
+    
+        // عند الضغط على تعديل
+        document.querySelectorAll('[data-bs-toggle="offcanvas"]').forEach(button => {
+            button.addEventListener('click', function () {
+                let notificationId = this.getAttribute('data-notification-id');
+                let notificationType = this.getAttribute('data-notification-type');
+                let title = this.getAttribute('data-title');
+                let message = this.getAttribute('data-message');
+    
+                document.getElementById('notification-id').value = notificationId;
+                document.getElementById('notification-type').value = notificationType;
+                document.getElementById('message').value = message;
+    
+                // تحديث القائمة المنسدلة للعنوان
+                const selectedType = notificationType;
+                titleDropdown.innerHTML = '<option value="">اختر العنوان</option>';
+    
+                if (selectedType && titleOptions[selectedType]) {
+                    titleOptions[selectedType].forEach(option => {
+                        const newOption = document.createElement("option");
+                        newOption.value = option;
+                        newOption.textContent = option;
+                        titleDropdown.appendChild(newOption);
+                    });
+                }
+    
+                document.getElementById('title').value = title;
+    
+                // تغيير عنوان الـ Dialog وزر الـ Form بناءً على العملية
+                if (notificationId) {
+                    document.getElementById('offcanvasAddNotificationLabel').textContent = "تعديل إشعار";
+                    document.getElementById('notificationActionButton').textContent = "تعديل";
+                } else {
+                    document.getElementById('offcanvasAddNotificationLabel').textContent = "إضافة إشعار";
+                    document.getElementById('notificationActionButton').textContent = "إضافة";
+                }
+            });
+        });
+    
+        // عند إرسال النموذج
+        document.getElementById("NotificationForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+    
+            let notificationId = document.getElementById("notification-id").value;
+            let notificationType = document.getElementById("notification-type").value;
+            let title = document.getElementById("title").value;
+            let message = document.getElementById("message").value;
+            let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+    
+            let url = notificationId ? "{% url 'manage_notification' %}" : "{% url 'manage_notification' %}";
+    
+            fetch(url, {
+                method: "POST",
+                headers: { 
+                    "X-CSRFToken": csrfToken, 
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                    notification_type: notificationType,
+                    title: title,
+                    message: message,
+                    notificationId: notificationId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById("offcanvasAddNotification"));
+                    offcanvas.hide();
+    
+                    if (notificationId) {
+                        let row = document.getElementById(`row-${notificationId}`);
+                        row.querySelector('td:nth-child(2)').textContent = document.getElementById('notification-type').options[document.getElementById('notification-type').selectedIndex].text;
+                        row.querySelector('td:nth-child(3)').textContent = title;
+                        row.querySelector('td:nth-child(4)').textContent = message;
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    alert("حدث خطأ: " + JSON.stringify(data.errors));
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        });
+    });
+
+// حذف إشعار
+function deleteNotification(notificationId) {
+    if (confirm("هل أنت متأكد من أنك تريد حذف هذا الإشعار؟")) {
+        let csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+
+        fetch(`/notifications/delete/${notificationId}/`, {
+            method: "POST",
+            headers: { 
+                "X-CSRFToken": csrfToken, 
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({ notification_id: notificationId }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`row-${notificationId}`).remove();
+                alert(data.message);
+            } else {
+                alert("حدث خطأ: " + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

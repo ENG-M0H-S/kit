@@ -17,6 +17,8 @@ from dotenv import load_dotenv
 
 from .template import TEMPLATE_CONFIG, THEME_LAYOUT_DIR, THEME_VARIABLES
 
+from celery.schedules import crontab
+
 load_dotenv()  # take environment variables from .env.
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -54,10 +56,23 @@ INSTALLED_APPS = [
     "apps.usermanage",
     "apps.generals",
     "apps.plantations",
+    "apps.notifications",
     "apps.pages",
     "auth.apps.AuthConfig",
     "user_sessions"
 ]
+
+CELERY_BEAT_SCHEDULE = {
+    'send-season-notifications': {
+        'task': 'your_app_name.tasks.send_season_notifications',
+        'schedule': crontab(hour=0, minute=0),  # يتم التشغيل يوميًا في منتصف الليل
+    },
+}
+
+# إعدادات Celery
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_TIMEZONE = 'Asia/Riyadh'  # تغيير المنطقة الزمنية حسب الحاجة
 
 AUTH_USER_MODEL = 'auth.User'
 AUDITLOG_INCLUDE_TRACKING_FIELDS = ['actor']

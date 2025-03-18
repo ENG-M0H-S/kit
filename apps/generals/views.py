@@ -1,4 +1,3 @@
-import json
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView, ListView
@@ -8,6 +7,9 @@ from web_project import TemplateLayout
 from .models import AreaSeason, Governates
 from apps.generals.models import Governates, Areas, Seasons
 from .forms import AreaSeasonForm, GovernateForm, AreaForm, SeasonForm
+import json
+from django.db import IntegrityError
+from django.shortcuts import render
 
 class GeneralsView(TemplateView):
     template_name = "govarnates.html"
@@ -146,22 +148,17 @@ def Delete_Season(request, season_id):
 @csrf_exempt
 def Add_Area_Season(request):
     if request.method == 'POST':
-        try:
-            # حاول تحليل البيانات كـ JSON إذا تم إرسالها بتلك الصيغة
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            # إذا فشل التحليل، استخدم request.POST كخيار بديل
-            data = request.POST
+        area_season_id = request.POST.get('areaSeasonId', None)
+        area_id = request.POST.get('area_id')
+        season_id = request.POST.get('season_id')
+        start_month = request.POST.get('start_month')
+        start_day = request.POST.get('start_day')
+        end_month = request.POST.get('end_month')
+        end_day = request.POST.get('end_day')
 
-        area_season_id = data.get('areaSeasonId', None)
-        area_id = data.get('area_id')
-        season_id = data.get('season_id')
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
-
-        # تحقق مما إذا كانت البيانات مستلمة بشكل صحيح
-        if not all([area_id, season_id, start_date, end_date]):
-            return JsonResponse({"success": False, "errors": {"__all__": ["جميع الحقول مطلوبة."]}})
+        # دمج الشهر واليوم في تاريخ واحد
+        start_date = f"{start_month}-{start_day}"
+        end_date = f"{end_month}-{end_day}"
 
         # عملية التعديل
         if area_season_id:
@@ -178,10 +175,20 @@ def Add_Area_Season(request):
         
         # عملية الإضافة
         else:
-            form = AreaSeasonForm(data)
+            form_data = {
+                'area': area_id,
+                'season': season_id,
+                'start_month': start_month,
+                'start_day': start_day,
+                'end_month': end_month,
+                'end_day': end_day,
+            }
+            form = AreaSeasonForm(form_data)
             if form.is_valid():
                 try:
                     new_area_season = form.save(commit=False)
+                    new_area_season.start_date = start_date  # تعيين start_date يدويًا
+                    new_area_season.end_date = end_date  # تعيين end_date يدويًا
                     new_area_season.save()
                     return JsonResponse({"success": True, "id": new_area_season.id, "message": "تمت إضافة موسم المنطقة بنجاح!"})
                 except IntegrityError:
@@ -189,7 +196,7 @@ def Add_Area_Season(request):
             else:
                 return JsonResponse({"success": False, "errors": form.errors})
     else:
-        return JsonResponse({"success": False, "message": "طلب غير صالح"})    
+        return JsonResponse({"success": False, "message": "طلب غير صالح"})
     
 # حذف موسم منطقة
 @csrf_exempt  # تعطيل CSRF مؤقتًا
@@ -200,3 +207,7 @@ def Delete_Area_Season(request, season_id, area_season_id):
         area_season.delete()
         return JsonResponse({"success": True, "message": "تم حذف موسم المنطقة بنجاح!"})
     return JsonResponse({"success": False, "error": "طلب غير صالح"}, status=400)
+
+def Days(request):
+    days = range(1, 31)  # إنشاء قائمة بالأرقام من 1 إلى 30
+    return render(request, 'areaseasons.html', {'days': days})

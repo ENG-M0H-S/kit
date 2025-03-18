@@ -33,6 +33,8 @@ urlpatterns = [
     path("", include("apps.generals.urls")),
     # plantations urls
     path("", include("apps.plantations.urls")),
+    # notifications urls
+    path("", include("apps.notifications.urls")),
 ]
 
 if settings.DEBUG:
