@@ -3,6 +3,7 @@ from web_project import TemplateLayout
 from django.views.generic import ListView
 from auditlog.models import LogEntry
 from user_sessions.models import Session
+from .models import Account
 from user_agents import parse
 from django.utils import timezone
 
@@ -13,7 +14,21 @@ class UserManageView(TemplateView):
         context = TemplateLayout.init(self, super().get_context_data(**kwargs))
         context['log_entries'] = LogEntry.objects.all().select_related('actor')  # تحميل المستخدم مسبقًا
         context['sessions'] = Session.objects.all()
+        # context['myaccount'] = Account.objects.all()
 
+        return context
+
+
+class AccountView(ListView):
+    model = Account
+    template_name = "myaccount.html"
+    context_object_name = "accounts"
+
+    def get_context_data(self, **kwargs):
+        """إرجاع الحساب الخاص بالمستخدم وإضافة بيانات إضافية"""
+        context = TemplateLayout.init(self, super().get_context_data(**kwargs))
+        context["accounts"] = Account.objects.filter(user=self.request.user)  # جلب الحساب الحالي فقط
+        context["layout_path"]  # تأكد من تمرير القالب الأساسي
         return context
 
 

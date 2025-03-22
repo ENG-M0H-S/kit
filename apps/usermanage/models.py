@@ -1,9 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from auditlog.registry import auditlog
-from django.dispatch import receiver
 import random
+from auditlog.registry import auditlog
 
 class Account(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -13,11 +11,11 @@ class Account(models.Model):
     def __str__(self):
         return f"Account {self.account_number} for {self.user.username}"
 
+# ✅ دالة إنشاء رقم حساب فريد
 def generate_account_number():
     while True:
-        account_number = ''.join(random.choices('0123456789', k=8))
+        account_number = ''.join(random.choices('0123456789', k=16))  # 16 رقم
         if not Account.objects.filter(account_number=account_number).exists():
             return account_number
-        
 
 auditlog.register(Account)

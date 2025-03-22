@@ -35,6 +35,8 @@ urlpatterns = [
     path("", include("apps.plantations.urls")),
     # notifications urls
     path("", include("apps.notifications.urls")),
+    # marketing urls
+    path("", include("apps.notifications.urls")),
 ]
 
 if settings.DEBUG:

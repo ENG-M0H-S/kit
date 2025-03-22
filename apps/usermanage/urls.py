@@ -24,4 +24,9 @@ urlpatterns = [
         login_required(SessionsView.as_view(template_name="sessions.html")), 
         name="sessions"
         ),
+    path(
+        "myaccount/", 
+        login_required(AccountView.as_view(template_name="myaccount.html")), 
+        name="myaccount"
+        ),
 ]
