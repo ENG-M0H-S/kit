@@ -29,4 +29,13 @@ urlpatterns = [
         login_required(AccountView.as_view(template_name="myaccount.html")), 
         name="myaccount"
         ),
+    path(
+        "accounts/", 
+        login_required(AccountsListView.as_view(template_name="accounts.html")), 
+        name="accounts"
+        ),
+    
+    path('accounts/deposit/<int:account_id>/', Add_Balance, name='deposit'),
+    path('accounts/withdraw/<int:account_id>/', Withdraw_balance, name='withdraw'),
+    path('accounts/toggle-status/<int:account_id>/', toggle_account_status, name='toggle_account_status'),
 ]

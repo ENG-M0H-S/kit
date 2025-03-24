@@ -88,6 +88,11 @@
           "slug": "auditlog"
         },
         {
+          "url": "accounts",
+          "name": "الحسابات",
+          "slug": "accounts"
+        },
+        {
           "url": "sessions",
           "name": "الجلسات",
           "slug": "sessions"

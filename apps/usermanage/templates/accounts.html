@@ -1,0 +1,156 @@
+{% extends layout_path %}
+
+{% load i18n %}
+
+{% block title %}جميع الحسابات - Starter Kit{% endblock title %}
+
+{% block content %}
+
+<h4 class="py-3 mb-4">📋 جميع الحسابات</h4>
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">💳 قائمة الحسابات</h2>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th> اسم المستخدم <i class="ri-user-line"></i></th>
+                    <th> رقم الحساب <i class="ri-bank-card-2-line"></i></th>
+                    <th> الرصيد <i class="ri-refund-2-line"></i></th>
+                    <th> حالة الحساب <i class="ri-git-repository-private-line"></i></th>
+                    <th>الإجراءات <i class="ri-settings-3-line"></i></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in all_accounts %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ account.user.username }}</td>
+                    <td>{{ account.account_number }}</td>
+                    <td class="fw-bold text-success">${{ account.balance }}</td>
+                    <td>{{ account.status }}</td>
+                    <td>
+                        <!-- زر الإيداع -->
+                        <button class="btn btn-success btn-sm open-transaction-modal"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#transactionModal"
+                            data-action="deposit"
+                            data-account-id="{{ account.id }}"
+                            data-account-number="{{ account.account_number }}">
+                            إيداع
+                        </button>
+                
+                        <!-- زر السحب -->
+                        <button class="btn btn-warning btn-sm open-transaction-modal"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#transactionModal"
+                            data-action="withdraw"
+                            data-account-id="{{ account.id }}"
+                            data-account-number="{{ account.account_number }}">
+                            سحب
+                        </button>
+                
+                        <!-- زر التفعيل/إلغاء التفعيل -->
+                        <form method="post" action="{% url 'toggle_account_status' account.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            {% if account.status == "active" %}
+                                <button type="submit" class="btn btn-danger btn-sm">تعطيل</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-primary btn-sm">تفعيل</button>
+                            {% endif %}
+                        </form>
+                        
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- نافذة الإيداع والسحب -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="transactionModal" aria-labelledby="transactionModalLabel">
+    <div class="offcanvas-header border-bottom">
+        <h5 id="transactionModalLabel" class="offcanvas-title">إجراء معاملة</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="AccountForm" method="post">
+            {% csrf_token %}
+            <input type="hidden" id="transaction-account-id" name="account_id">
+
+            <div class="mb-3">
+                <label for="transaction-account-number" class="form-label">رقم الحساب</label>
+                <input type="text" class="form-control" id="transaction-account-number" readonly>
+            </div>
+
+            <div class="mb-3">
+                <label for="transaction-amount" class="form-label">المبلغ</label>
+                <input type="number" class="form-control" id="transaction-amount" name="amount" required>
+            </div>
+
+            <!-- أزرار المبالغ السريعة -->
+            <div class="mb-3">
+                <button type="button" class="btn btn-outline-secondary amount-btn" data-value="100">100</button>
+                <button type="button" class="btn btn-outline-secondary amount-btn" data-value="500">500</button>
+                <button type="button" class="btn btn-outline-secondary amount-btn" data-value="1000">1000</button>
+            </div>
+
+            <button type="submit" id="transaction-submit-button" class="btn btn-primary w-100"></button>
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block vendor_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let transactionButtons = document.querySelectorAll(".open-transaction-modal");
+        let accountNumberInput = document.getElementById("transaction-account-number");
+        let accountIdInput = document.getElementById("transaction-account-id");
+        let modalTitle = document.getElementById("transactionModalLabel");
+        let submitButton = document.getElementById("transaction-submit-button");
+        let transactionForm = document.getElementById("AccountForm");
+    
+        transactionButtons.forEach(button => {
+            button.addEventListener("click", function() {
+                let accountNumber = this.getAttribute("data-account-number");
+                let accountId = this.getAttribute("data-account-id");
+                let action = this.getAttribute("data-action");
+    
+                accountNumberInput.value = accountNumber;
+                accountIdInput.value = accountId;
+    
+                if (action === "deposit") {
+                    modalTitle.textContent = "إيداع مبلغ في الحساب";
+                    submitButton.textContent = "إيداع";
+                    submitButton.classList.remove("btn-warning");
+                    submitButton.classList.add("btn-primary");
+                    transactionForm.action = `/accounts/deposit/${accountId}/`; // تغيير المسار للإيداع
+                } else if (action === "withdraw") {
+                    modalTitle.textContent = "سحب مبلغ من الحساب";
+                    submitButton.textContent = "سحب";
+                    submitButton.classList.remove("btn-primary");
+                    submitButton.classList.add("btn-warning");
+                    transactionForm.action = `/accounts/withdraw/${accountId}/`; // تغيير المسار للسحب
+                }
+            });
+        });
+    
+        let amountButtons = document.querySelectorAll(".amount-btn");
+        let amountInput = document.getElementById("transaction-amount");
+    
+        amountButtons.forEach(button => {
+            button.addEventListener("click", function() {
+                amountInput.value = this.getAttribute("data-value");
+            });
+        });
+    });
+    
+    </script>
+    
+{% endblock vendor_js %}

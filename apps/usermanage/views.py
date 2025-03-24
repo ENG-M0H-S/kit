@@ -3,9 +3,17 @@ from web_project import TemplateLayout
 from django.views.generic import ListView
 from auditlog.models import LogEntry
 from user_sessions.models import Session
-from .models import Account
+from .models import Account ,Transactions
 from user_agents import parse
 from django.utils import timezone
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404,redirect
+from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from decimal import Decimal
+from django.contrib import messages
+
+
 
 class UserManageView(TemplateView):
     # Predefined function
@@ -14,10 +22,21 @@ class UserManageView(TemplateView):
         context = TemplateLayout.init(self, super().get_context_data(**kwargs))
         context['log_entries'] = LogEntry.objects.all().select_related('actor')  # تحميل المستخدم مسبقًا
         context['sessions'] = Session.objects.all()
-        # context['myaccount'] = Account.objects.all()
+        # context['all_accounts'] = Account.objects.all()
+        # context["layout_path"]
 
         return context
 
+class AccountsListView(ListView):
+    model = Account
+    template_name = 'accounts.html'
+    context_object_name = 'all_accounts'
+    
+    def get_context_data(self, **kwargs):
+        context = TemplateLayout.init(self, super().get_context_data(**kwargs))
+        context["all_accounts"] = Account.objects.all()  # جلب الحساب الحالي فقط
+        context["layout_path"]  # تأكد من تمرير القالب الأساسي
+        return context
 
 class AccountView(ListView):
     model = Account
@@ -62,3 +81,95 @@ class SessionsView(ListView):
 
         context['sessions'] = sessions_with_parsed_ua
         return context
+
+
+
+def Add_Balance(request, account_id):
+    account = get_object_or_404(Account, id=account_id)
+
+    if account.status == "inactive":
+        messages.error(request, "لا يمكن الإيداع في حساب غير مفعل.")
+        return redirect("accounts")
+
+    if request.method == "POST":
+        amount = request.POST.get("amount")
+
+        try:
+            amount = Decimal(amount)  # تحويل المبلغ إلى Decimal
+        except:
+            messages.error(request, "يجب إدخال مبلغ صحيح.")
+            return redirect("accounts")
+
+        if amount <= 0:
+            messages.error(request, "يجب إدخال مبلغ صحيح.")
+            return redirect("accounts")
+
+        with transaction.atomic():
+            account.balance += amount
+            account.save()
+
+            Transactions.objects.create(
+                account=account,
+                transaction_type="deposit",
+                amount=amount,
+                # created_by=request.user
+            )
+
+        messages.success(request, f"تم إيداع {amount}$ بنجاح في الحساب {account.account_number}.")
+        return redirect("accounts")
+
+    return redirect("accounts")
+
+
+def Withdraw_balance(request, account_id):
+    account = get_object_or_404(Account, id=account_id)
+
+    if account.status == "inactive":
+        messages.error(request, "لا يمكن السحب من حساب غير مفعل.")
+        return redirect("accounts")
+
+    if request.method == "POST":
+        amount = request.POST.get("amount")
+        if not amount or Decimal(amount) <= 0:  # ✅ استخدام Decimal
+            messages.error(request, "يجب إدخال مبلغ صحيح.")
+            return redirect("accounts")
+
+        if Decimal(amount) > account.balance:  # ✅ التأكد من الرصيد باستخدام Decimal
+            messages.error(request, "الرصيد غير كافٍ لإتمام السحب.")
+            return redirect("accounts")
+
+        with transaction.atomic():
+            account.balance -= Decimal(amount)  # ✅ تحويل `amount` إلى Decimal
+            account.save()
+
+            Transactions.objects.create(
+                account=account,
+                transaction_type="withdraw",
+                amount=Decimal(amount),  # ✅ تأكد أن الحقل يخزن قيمة Decimal
+            )
+
+        messages.success(request, f"تم سحب {amount}$ بنجاح من الحساب {account.account_number}.")
+        return redirect("accounts")
+
+    return redirect("accounts")
+
+def Add_Transaction(account, amount, transaction_type, description=None):
+    Transactions.objects.create(
+        account = account,
+        amount = amount,
+        transaction_type = transaction_type,
+        description = description,
+        transaction_date =now()
+    )
+   
+def toggle_account_status(request, account_id):
+    account = get_object_or_404(Account, id=account_id)
+    
+    # التبديل بين "active" و "inactive"
+    account.status = "inactive" if account.status == "active" else "active"
+    account.save()
+    
+    status = "مفعل" if account.status == "active" else "معطل"
+    messages.success(request, f"تم تغيير حالة الحساب إلى {status}.")
+    
+    return redirect('accounts')
