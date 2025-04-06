@@ -105,6 +105,30 @@
       "name": "Notifications",
       "slug": "notifications"
     },
+
+
+    {
+      "name": "farmer",
+      "icon": "menu-icon tf-icons ri-plant-line",
+      "slug": "dashboard",
+      "submenu": [
+        {
+          "url": "crops",
+          "name": "المحاصيل الزراعية ",
+          "slug": "crops"
+        },
+        {
+          "url": "products_by_category",
+          "name": "المنتجات الزراعية ",
+          "slug": "products_by_category"
+        },
+        {
+          "url": "sessions",
+          "name": "الاشعارات",
+          "slug": "sessions"
+        }
+      ]
+    },
     {
       "url": "index",
       "icon": "menu-icon tf-icons ri-home-smile-line",

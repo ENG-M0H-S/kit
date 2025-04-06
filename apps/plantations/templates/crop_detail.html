@@ -1,0 +1,211 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}تفاصيل المحصول{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center mb-4">
+    <div class="col-md-8">
+      <div class="card shadow-sm p-4">
+        <div class="d-flex align-items-center mb-4">
+          <img src="{% if crop.plant.image %}{{ crop.plant.image.url }}{% else %}https://via.placeholder.com/100x100{% endif %}" 
+               alt="{{ crop.plant.plant_name }}" 
+               class="me-4 rounded" 
+               width="120" height="120"
+               style="object-fit: cover;">
+          <div>
+            <h4>{{ crop.crop_name }}</h4>
+            <p class="mb-0">النبات: <strong>{{ crop.plant.plant_name }}</strong></p>
+            <p class="text-muted">تاريخ الزراعة: {{ crop.planting_date|date:"Y-m-d" }}</p>
+            <p class="text-muted">الحالة: {{ crop.get_status_display }}</p>
+          </div>
+        </div>
+
+        <hr>
+
+        {% if crop.status == 'growing' %}
+        <div class="row text-center mb-3">
+            <div class="col-md-4">
+            <p class="mb-1">موعد الري القادم</p>
+            <strong>{{ crop.next_watering_date|date:"Y-m-d" }}</strong>
+            <p class="text-muted small">({{ water_days_left }} يوم متبقي)</p>
+            </div>
+            <div class="col-md-4">
+            <p class="mb-1">موعد التسميد القادم</p>
+            <strong>{{ crop.next_fertilization_date|date:"Y-m-d" }}</strong>
+            <p class="text-muted small">({{ fertilizer_days_left }} يوم متبقي)</p>
+            </div>
+            <div class="col-md-4">
+            <p class="mb-1">موعد الحصاد</p>
+            <strong>{{ crop.harvest_date|date:"Y-m-d" }}</strong>
+            <p class="text-muted small">({{ harvest_days_left }} يوم متبقي)</p>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="{% url 'watering_crop' crop.id %}" class="btn btn-outline-primary me-2">ري</a>
+            <a href="{% url 'fertilization_crop' crop.id %}" class="btn btn-outline-success me-2">تسميد</a>
+            <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#harvestModal">حصاد</button>
+            
+            <!-- زر "تالف" في الواجهة -->
+            <a href="#" class="btn btn-outline-danger me-2" id="failCropButton" data-crop-id="{{ crop.id }}">تلف</a>
+
+            <!-- نافذة التأكيد -->
+            <div id="confirmFailModal" class="modal fade" tabindex="-1" aria-labelledby="confirmFailModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="confirmFailModalLabel">تأكيد الإتلاف</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>هل أنت متأكد من أنك تريد وضع المحصول في حالة تالف؟</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" id="confirmFailButton">نعم، تأكيد الإتلاف</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  <!-- جدول قائمة الحصاد -->
+  {% comment %} <div class="row justify-content-center">
+    <div class="col-md-10">
+      <div class="card shadow-sm p-4">
+        <h5 class="mb-3">قائمة الحصاد</h5>
+        {% if crop.harvests.exists %}
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead class="table-light">
+              <tr>
+                <th>الكمية</th>
+                <th>الوحدة</th>
+                <th>سعر الوحدة</th>
+                <th>التاريخ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for harvest in crop.harvests.all %}
+              <tr>
+                <td>{{ harvest.quantity }}</td>
+                <td>{{ harvest.unit }}</td>
+                <td>{{ harvest.unit_price }}</td>
+                <td>{{ harvest.created_at|date:"Y-m-d" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-center text-muted">لا توجد عمليات حصاد بعد.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div> {% endcomment %}
+  
+
+<!-- مودال الحصاد -->
+<div class="modal fade" id="harvestModal" tabindex="-1" aria-labelledby="harvestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form method="post" action="{% url 'harvest_crop' crop.id %}">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="harvestModalLabel">تفاصيل الحصاد</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="quantity" class="form-label">الكمية المحصودة</label>
+              <input type="number" class="form-control" name="quantity" id="quantity" required>
+            </div>
+            <div class="mb-3">
+              <label for="unit" class="form-label">الوحدة</label>
+              <select class="form-control" name="unit" id="unit" required>
+                <option value="kg">كيلو</option>
+                <option value="box">سلة</option>
+                <option value="bundle">ربطة</option>
+                <option value="cup">قدح</option>
+                <option value="bag">كيس</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="unit_price" class="form-label">سعر الوحدة</label>
+              <input type="number" class="form-control" name="unit_price" id="unit_price" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-warning">تأكيد الحصاد</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+</div>
+
+  
+{% endblock %}
+{% block vendor_js %}
+<script>
+    // عند الضغط على زر "تالف"
+    document.getElementById("failCropButton").addEventListener("click", function() {
+        var cropId = this.getAttribute('data-crop-id');
+        
+        // إظهار نافذة التأكيد
+        var confirmFailModal = new bootstrap.Modal(document.getElementById('confirmFailModal'));
+        confirmFailModal.show();
+
+        // عند الضغط على "نعم، تأكيد الإتلاف"
+        document.getElementById("confirmFailButton").addEventListener("click", function() {
+            // دالة للحصول على CSRF token من الكوكيز
+            function getCSRFToken() {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.startsWith('csrftoken=')) {
+                        return cookie.substring('csrftoken='.length);
+                    }
+                }
+                return null;
+            }
+
+            var csrfToken = getCSRFToken();
+
+            // إرسال طلب AJAX لتحديث حالة المحصول إلى "تالف"
+            fetch(`/crop/${cropId}/fail/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest', // لضمان أن الطلب هو AJAX
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken // إضافة CSRF token هنا
+                },
+                body: JSON.stringify({ 'crop_id': cropId }) // إرسال ID المحصول
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // عرض رسالة النجاح
+                    alert(data.message);
+                    window.location.reload(); // تحديث الصفحة أو العودة إلى صفحة التفاصيل
+                } else {
+                    alert('فشل في إتمام العملية');
+                }
+                confirmFailModal.hide(); // إغلاق نافذة التأكيد
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء العملية');
+            });
+        });
+    });
+</script>
+{% endblock %}

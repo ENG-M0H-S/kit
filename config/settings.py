@@ -50,7 +50,10 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.pages",
     "auth.apps.AuthConfig",
-    "user_sessions"
+    "user_sessions",
+    'drf_yasg',
+    'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 CELERY_BEAT_SCHEDULE = {

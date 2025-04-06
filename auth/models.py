@@ -24,7 +24,6 @@ class Profile(models.Model):
     user_type = models.CharField(max_length=100, choices=USER_TYPE, null=True, blank=True)
     phone_number = models.IntegerField(unique=True, null=True, blank=True)
     image = models.ImageField(upload_to='photo/%y/%m/%d', null=True, blank=True)
-
     account = models.OneToOneField(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='profile_account')
 
     def __str__(self):

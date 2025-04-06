@@ -1,5 +1,5 @@
 from django import forms
-from apps.plantations.models import Categories, Plants
+from apps.plantations.models import Categories, Plants, Crops
 
 
 class CategoryForm(forms.ModelForm):
@@ -25,3 +25,37 @@ class PlantForm(forms.ModelForm):
             'img2': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'img3': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
+
+
+class CropForm(forms.ModelForm):
+    class Meta:
+        model = Crops
+        fields = ['plant', 'crop_name']
+        labels = {
+            'plant': 'اختيار النبات',
+            'crop_name': 'اسم المزروع',
+        }
+        widgets = {
+            'plant': forms.Select(attrs={'class': 'form-control'}),
+            'crop_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'أدخل اسم المزروع'}),
+        }
+        
+        
+class UpdateCropForm(forms.ModelForm):
+    class Meta:
+        model = Crops
+        fields = ['status']
+        labels = {
+            'status': 'الحالة',
+        }
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+
+class WateringForm(forms.Form):
+    crop_id = forms.IntegerField(widget=forms.HiddenInput())
+
+
+class FertilizationForm(forms.Form):
+    crop_id = forms.IntegerField(widget=forms.HiddenInput())

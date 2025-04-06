@@ -6,6 +6,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    # جميع الـ API ستكون هنا
+    path('api/v1/', include('config.api_urls')),  
+    
     path("admin/", admin.site.urls),
     # starter urls
     path("", include("apps.usermanage.urls")),
@@ -20,7 +23,7 @@ urlpatterns = [
     # notifications urls
     path("", include("apps.notifications.urls")),
     # marketing urls
-    path("", include("apps.notifications.urls")),
+    path("", include("apps.marketing.urls")),
     
     
 ]

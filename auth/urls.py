@@ -8,6 +8,7 @@ from .verify_email.views import  VerifyEmailTokenView , VerifyEmailView, SendVer
 
 
 urlpatterns = [
+    path('auth/login/', LoginView.as_view(), name='login'),
     path(
         "login/",
         LoginView.as_view(template_name="auth/login.html"),

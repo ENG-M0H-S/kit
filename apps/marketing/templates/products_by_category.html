@@ -1,0 +1,43 @@
+{% extends layout_path %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4 text-center">المنتجات الزراعية حسب الأصناف</h2>
+
+    {% for category in categories %}
+        <div class="card mb-5 shadow rounded p-3">
+            <h4 class="text-success mb-3">{{ category.get_arabic_name }}</h4>  {# الاسم بالعربي إن وجد #}
+
+            <div class="row">
+
+                {% with category_key="category_"|add:category.id|stringformat:"s" %}
+                    {% for product in products_by_category[category_key]|slice:":4" %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                {% if product.image %}
+                                    <img src="{{ product.image.url }}" class="card-img-top" style="height: 180px; object-fit: cover;">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ product.name }}</h5>
+                                    <p class="card-text">
+                                        الكمية: {{ product.quantity }} {{ product.unit }}<br>
+                                        السعر: {{ product.unit_price }} ريال
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">لا توجد منتجات متاحة في هذا الصنف حاليًا.</p>
+                    {% endfor %}
+                {% endwith %}
+            </div>
+
+            <div class="text-end">
+                <a href="{% url 'category_products' category.id %}" class="btn btn-outline-success">
+                    عرض المزيد من {{ category.get_arabic_name }}
+                </a>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

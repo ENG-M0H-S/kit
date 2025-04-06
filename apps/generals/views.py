@@ -209,5 +209,5 @@ def Delete_Area_Season(request, season_id, area_season_id):
     return JsonResponse({"success": False, "error": "طلب غير صالح"}, status=400)
 
 def Days(request):
-    days = range(1, 31)  # إنشاء قائمة بالأرقام من 1 إلى 30
+    days = range(1, 31)  # إنشاء قائمة بالأرقام من 1 إلى 31
     return render(request, 'areaseasons.html', {'days': days})

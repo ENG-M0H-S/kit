@@ -1,0 +1,268 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock title %}
+
+{% block content %}
+
+<div class="mb-3 text-center">
+    <!-- زر عرض المحاصيل المحصودة -->
+    <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#harvestedModal">
+        عرض المحاصيل المحصودة
+    </button>
+    
+    <!-- زر عرض المحاصيل التالفة -->
+    <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#failedModal">
+        عرض المحاصيل التالفة
+    </button>
+</div>
+<!-- زر إضافة محصول جديد -->
+<button class="btn btn-success mb-3" 
+        data-bs-toggle="offcanvas" 
+        data-bs-target="#offcanvasAddCrop">
+    جديد +
+</button>
+
+<!-- قائمة المحاصيل -->
+<div class="row">
+    {% for crop in crops %}
+    <div class="col-md-4 col-lg-3 mb-3" id="row-{{ crop.id }}">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body text-center">
+          <div class="d-flex align-items-center mb-3">
+            <img src="{% if crop.plant.image %}{{ crop.plant.image.url }}{% else %}https://via.placeholder.com/100x100?text=No+Image{% endif %}"
+                 alt="{{ crop.plant.plant_name }}"
+                 width="100"
+                 height="100"
+                 class="me-3 rounded"
+                 style="object-fit: cover;">
+            <div>
+              <strong>{{ crop.crop_name }}</strong><br>
+              <span>النبات: {{ crop.plant.plant_name }}</span><br>
+              <span class="text-muted">الحالة: {{ crop.get_status_display }}</span>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between">
+            <a href="{% url 'crop_detail' crop.id %}" class="btn btn-outline-primary btn-sm">
+              <i class="ri-eye-line"></i> تفاصيل
+            </a>
+            <a href="#"
+               class="btn btn-outline-warning btn-sm edit-crop-btn"
+               data-crop-id="{{ crop.id }}"
+               data-crop-name="{{ crop.crop_name }}"
+               data-plant-id="{{ crop.plant.id }}"
+               data-bs-toggle="offcanvas"
+               data-bs-target="#offcanvasAddCrop">
+              <i class="ri-pencil-line"></i> تعديل
+            </a>
+            <a href="#"
+               class="btn btn-outline-danger btn-sm"
+               onclick="deleteCrop({{ crop.id }})">
+              <i class="ri-delete-bin-7-line"></i> حذف
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-center">لا توجد مزروعات متاحة حاليًا في هذا القسم.</p>
+    {% endfor %}
+</div>
+
+<!-- نافذة إضافة/تعديل مزروع -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAddCrop" aria-labelledby="offcanvasAddCropLabel">
+    <div class="offcanvas-header border-bottom">
+      <h5 id="offcanvasAddCropLabel" class="offcanvas-title">إضافة مزروع</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <form id="cropForm">
+        {% csrf_token %}
+        <input type="hidden" id="crop-id" name="cropId">
+  
+        <!-- حقل اختيار النبات -->
+        <div class="mb-3">
+          <label for="plant" class="form-label">النبات</label>
+          <select class="form-select" id="plant" name="plant" required>
+            {% for plant in plants %}
+            <option value="{{ plant.id }}">{{ plant.plant_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+  
+        <!-- اسم المزرعة -->
+        <div class="mb-3">
+          <label for="crop_name" class="form-label">اسم المزرعة</label>
+          <input type="text" class="form-control" id="crop_name" name="crop_name" required>
+        </div>
+  
+        <!-- أزرار الإجراء -->
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-success me-2" id="cropActionButton">إضافة</button>
+          <button type="reset" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">إلغاء</button>
+        </div>
+      </form>
+    </div>
+</div>
+
+<!-- Modal لعرض المحاصيل المحصودة -->
+<div class="modal fade" id="harvestedModal" tabindex="-1" aria-labelledby="harvestedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title d-flex align-items-center" id="harvestedModalLabel">
+                    🌾 <span class="ms-2">المحاصيل المحصودة</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <!-- جدول المحاصيل المحصودة -->
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>اسم المزروع</th>
+                            <th>اسم النبات</th>
+                            <th>تاريخ الزراعة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for crop in crop_list_harvested %}
+                                <tr>
+                                    <td>
+                                        <img src="{% if crop.plant.image %}{{ crop.plant.image.url }}{% else %}https://via.placeholder.com/50x50?text=No+Image{% endif %}" 
+                                             alt="{{ crop.plant.plant_name }}" class="rounded" width="50" height="50">
+                                    </td>
+                                    <td>{{ crop.crop_name }}</td>
+                                    <td>{{ crop.plant.plant_name }}</td>
+                                    <td>{{ crop.planting_date|date:"Y-m-d" }}</td>
+                                </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal لعرض المحاصيل التالفة -->
+<div class="modal fade" id="failedModal" tabindex="-1" aria-labelledby="failedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title d-flex align-items-center" id="failedModalLabel">
+                    💀 <span class="ms-2">المحاصيل التالفة</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <!-- جدول المحاصيل التالفة -->
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>اسم المزروع</th>
+                            <th>اسم النبات</th>
+                            <th>تاريخ الزراعة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for crop in crop_list_failed %}
+                                <tr>
+                                    <td>
+                                        <img src="{% if crop.plant.image %}{{ crop.plant.image.url }}{% else %}https://via.placeholder.com/50x50?text=No+Image{% endif %}" 
+                                             alt="{{ crop.plant.plant_name }}" class="rounded" width="50" height="50">
+                                    </td>
+                                    <td>{{ crop.crop_name }}</td>
+                                    <td>{{ crop.plant.plant_name }}</td>
+                                    <td>{{ crop.planting_date|date:"Y-m-d" }}</td>
+                                </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+  
+{% endblock %}
+
+{% block vendor_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.body.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-bs-toggle="offcanvas"]');
+      if (!button) return;
+
+      const dataset = button.dataset;
+
+      // تعبئة البيانات في الفورم
+      document.getElementById('crop-id').value = dataset.cropId || '';
+      document.getElementById('crop_name').value = dataset.cropName || '';
+      document.getElementById('plant').value = dataset.plantId || '';
+
+      const label = document.getElementById('offcanvasAddCropLabel');
+      const buttonAction = document.getElementById('cropActionButton');
+      if (dataset.cropId) {
+        label.textContent = "تعديل محصول";
+        buttonAction.textContent = "تعديل";
+      } else {
+        label.textContent = "إضافة محصول";
+        buttonAction.textContent = "إضافة";
+      }
+    });
+
+    document.getElementById("cropForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+
+      fetch("{% url 'manage_crop' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById("offcanvasAddCrop"));
+          offcanvas.hide();
+          location.reload();
+        } else {
+          alert("خطأ: " + (data.errors ? JSON.stringify(data.errors) : data.message));
+        }
+      })
+      .catch(error => console.error("Error:", error));
+    });
+  });
+
+  function deleteCrop(cropId) {
+    if (!confirm("هل أنت متأكد من حذف هذا المحصول؟")) return;
+    const csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+    fetch(`/crops/delete/${cropId}/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById(`row-${cropId}`).remove();
+        alert("تم الحذف بنجاح!");
+      } else {
+        alert("حدث خطأ أثناء الحذف.");
+      }
+    })
+    .catch(error => console.error("Error:", error));
+  }
+</script>
+{% endblock %}
