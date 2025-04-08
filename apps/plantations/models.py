@@ -14,6 +14,7 @@ class Categories(models.Model):
     ]
 
     category_name = models.CharField(max_length=255, choices=TYPE_CHOICES)
+    category_name_ar = models.CharField(max_length=255,null=True, blank=True)
     category_image = models.ImageField(upload_to='photo/%y/%m/%d')
     def __str__(self):
         return self.category_name

@@ -1,0 +1,196 @@
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}المنتجات الزراعية{% endblock %}
+
+{% block content %}
+<h3 class="mb-4 text-center">المنتجات الزراعية</h3>
+<button class="btn btn-outline-success mb-2" onclick="loadUserSales()">عرض المبيعات</button>
+<div class="row">
+  {% for item in categorized_products %}
+    <div class="col-12 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">{{ item.category.category_name_ar }}</h5>
+          <a href="{% url 'products_by_category' item.category.id %}" class="btn btn-outline-primary btn-sm">
+            عرض المزيد
+          </a>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for product in item.products %}
+              <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-3">
+                <div class="card h-100 shadow-sm">
+                  <img class="card-img-top" src="{{ product.image.url }}" alt="{{ product.product_name }}" style="height: 150px; object-fit: cover;" />
+                  <div class="card-body text-center">
+                    <h6 class="card-title">{{ product.product_name }}</h6>
+                    <p class="card-text text-muted small">{{ product.name }}</p>
+                    <p class="text-muted small mb-2">الكمية المتوفرة: {{ product.quantity }} {{product.unit}}</p>
+                    <p class="text-muted small mb-2">سعر الوحدة: {{product.unit_price}}</p>
+                    <p class="text-muted small mb-2">تاريخ الانتهاء: {{product.expiration_date}}</p>
+                    <button class="btn btn-success btn-sm" onclick="openSellModal({{ product.id }}, '{{ product.product_name }}', {{ product.quantity }})">
+                      بيع مباشر
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="sellModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="sellForm" method="POST" onsubmit="return confirmSell()">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="sellModalTitle">بيع مباشر</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="sellProductName" class="mb-2 fw-bold"></p>
+          <div class="mb-3">
+            <label for="sellQuantity" class="form-label">الكمية المباعة:</label>
+            <input type="number" class="form-control" id="sellQuantity" name="quantity" min="" required />
+            <input type="hidden" id="productId" name="product_id" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">تأكيد البيع</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal لعرض المبيعات -->
+<div class="modal fade" id="salesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">مبيعاتي</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- جدول البيانات -->
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered text-center table-sm">
+            <thead>
+              <tr>
+                <th>المنتج</th>
+                <th>الكمية</th>
+                <th>الإجمالي</th>
+                <th>العميل</th>
+                <th>التاريخ</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody">
+              <!-- بيانات المبيعات -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- عرض الإجمالي بشكل مبسط -->
+        <div class="text-end fw-bold mt-3">
+          إجمالي المبيعات: <span id="totalSales">0</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+{% endblock %}
+{% block vendor_js %}
+<script>
+  function openSellModal(id, name, quantity) {
+    document.getElementById('sellProductName').textContent = "المنتج: " + name + " (المتوفر: " + quantity + ")";
+    document.getElementById('productId').value = id;
+    document.getElementById('sellQuantity').max = quantity;
+    document.getElementById('sellQuantity').value = 1;
+
+    var sellModal = new bootstrap.Modal(document.getElementById('sellModal'));
+    sellModal.show();
+  }
+
+  function confirmSell() {
+    const productId = document.getElementById('productId').value;
+    const quantity = document.getElementById('sellQuantity').value;
+    const max = parseInt(document.getElementById('sellQuantity').max);
+    if (quantity > max) {
+      alert("الكمية أكبر من المتاحة!");
+      return false;
+    }
+    fetch("{% url 'direct_sell' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}",
+      },
+      body: new URLSearchParams({
+        product_id: productId,
+        quantity: quantity
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        alert(data.message);
+        location.reload();  // تحديث الصفحة لعرض الكمية الجديدة
+      } else {
+        alert(data.message);
+      }
+    })
+    .catch(err => {
+      alert("حدث خطأ أثناء المعالجة");
+    });
+
+    return false;  // منع الإرسال العادي
+  }
+
+  function loadUserSales() {
+    fetch('/user-sales/')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.getElementById('salesTableBody');
+        const totalSpan = document.getElementById('totalSales');
+        tbody.innerHTML = '';
+        totalSpan.textContent = data.total_sales;
+
+        if (data.sales.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5">لا توجد مبيعات.</td></tr>`;
+        } else {
+          data.sales.forEach(sale => {
+            tbody.innerHTML += `
+              <tr>
+                <td>${sale.product_name}</td>
+                <td>${sale.quantity} ${sale.unit}</td>
+                <td>${sale.total_price}</td>
+                <td>${sale.customer}</td>
+                <td>${sale.sold_at}</td>
+              </tr>
+            `;
+          });
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('salesModal'));
+        modal.show();
+      })
+      .catch(() => alert('حدث خطأ أثناء تحميل المبيعات.'));
+  }
+</script>
+{% endblock %}

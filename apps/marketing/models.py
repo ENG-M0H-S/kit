@@ -35,6 +35,26 @@ class Product(models.Model):
             self.name = self.crop.plant.plant_name
         super().save(*args, **kwargs)
         
+class Sale(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    unit = models.CharField(max_length=100, choices=UNIT_CHOICES, null=True, blank=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    sold_at = models.DateTimeField(auto_now_add=True)
+    customer_name = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    
+    def __str__(self):
+        return f"بيع {self.product.name}"
+
+    def save(self, *args, **kwargs):
+        # تحديث الكمية المتوفرة من المنتج عند إجراء البيع
+        if self.product.quantity >= self.quantity:
+            self.product.quantity -= self.quantity
+            self.product.save()
+            self.total_price = self.product.unit_price * self.quantity
+            super().save(*args, **kwargs)
+        else:
+            raise ValueError("الكمية المطلوبة أكبر من المتوفرة")
 
 #جدول المخزون (منتجات التجار)    
 class Inventory(models.Model):

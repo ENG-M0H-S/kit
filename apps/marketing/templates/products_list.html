@@ -1,0 +1,137 @@
+<!-- كما هو: -->
+{% extends layout_path %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}منتجات {{ current_category.name }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-4">منتجات صنف {{ current_category.category_name_ar }}:</h4>
+
+<div class="row">
+  {% for product in products %}
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+      <div class="card h-100 shadow-sm">
+        <img class="card-img-top" src="{{ product.image.url }}" alt="{{ product.product_name }}" style="height: 150px; object-fit: cover;" />
+        <div class="card-body text-center">
+          <h6 class="card-title">{{ product.product_name }}</h6>
+          <p class="card-text text-muted small">{{ product.name }}</p>
+          <p class="text-muted small mb-2">الكمية المتوفرة: {{ product.quantity }} {{ product.unit }}</p>
+          <p class="text-muted small mb-2">سعر الوحدة: {{ product.unit_price }}</p>
+          <p class="text-muted small mb-2">تاريخ الانتهاء: {{ product.expiration_date }}</p>
+          <button type="button" class="btn btn-success btn-sm" onclick="openSellModal({{ product.id }}, '{{ product.product_name }}', {{ product.quantity }})">
+            بيع مباشر
+          </button>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12 text-center">
+      <p>لا توجد منتجات ضمن هذا الصنف.</p>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="sellModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="sellForm" method="POST">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">بيع مباشر</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="sellProductName" class="mb-2 fw-bold"></p>
+          <div class="mb-3">
+            <label for="sellQuantity" class="form-label">الكمية المباعة:</label>
+            <input type="number" class="form-control" id="sellQuantity" name="quantity" required />
+            <input type="hidden" id="productId" name="product_id" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-success" onclick="confirmSell()">تأكيد البيع</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if is_paginated %}
+  <div class="text-center">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary">السابق</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline-secondary">التالي</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block vendor_js %}
+<script>
+  // منع إرسال النموذج تلقائيًا
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("sellForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+    });
+  });
+
+  function openSellModal(id, name, quantity) {
+    document.getElementById('sellProductName').textContent = "المنتج: " + name + " (المتوفر: " + quantity + ")";
+    document.getElementById('productId').value = id;
+    document.getElementById('sellQuantity').max = quantity;
+    document.getElementById('sellQuantity').value = 1;
+
+    var sellModal = new bootstrap.Modal(document.getElementById('sellModal'));
+    sellModal.show();
+  }
+
+  function confirmSell() {
+    const productId = document.getElementById('productId').value;
+    const quantity = document.getElementById('sellQuantity').value;
+    const max = parseInt(document.getElementById('sellQuantity').max);
+    const btn = document.querySelector('#sellForm button[type="button"]');
+
+    if (quantity > max || quantity <= 0) {
+        alert("الكمية غير صالحة!");
+        return;
+    }
+
+    // تعطيل الزر لمنع النقر المتعدد
+    btn.disabled = true;
+    btn.textContent = "جاري المعالجة...";
+
+    fetch("{% url 'direct_sell' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: new URLSearchParams({
+            product_id: productId,
+            quantity: quantity
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message);
+            btn.disabled = false;
+            btn.textContent = "تأكيد البيع";
+        }
+    })
+    .catch(err => {
+        alert("حدث خطأ أثناء المعالجة");
+        btn.disabled = false;
+        btn.textContent = "تأكيد البيع";
+    });
+  }
+</script>
+{% endblock %}
